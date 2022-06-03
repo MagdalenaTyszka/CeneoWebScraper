@@ -35,6 +35,9 @@ review_elements = {
 @app.route('/index')
 def index():
     return render_template("index.html.jinja")
+@app.route('/author')    
+def author():
+    return "Magdalena Tyszka, Informatyka stosowana, N2"   
 
 @app.route('/extract/<product_id>')
 def extract(product_id):
@@ -59,7 +62,7 @@ def extract(product_id):
         try: 
             next_page = page_dom.select_one("a.pagination__next")
             url = "https://www.ceneo.pl"+next_page["href"]
-        except TypeError: url = None
+        except TypeError: url = None    
 
     with open(f"./app/reviews/{product_id}.json", "w", encoding="UTF-8") as f:
         json.dump(all_reviews, f, indent=4, ensure_ascii=False)
@@ -77,7 +80,7 @@ def product(product_id):
         "product_rating": reviews.stars.mean().round(2),
         "reviews_count": reviews.shape[0],
         "pros_count": reviews.pros.map(bool).sum(),
-        "cons_count": reviews.cons.map(bool).sum()
+        "cons_count": reviews.cons.map(bool).sum()    
     }
     recommendations = reviews.recommendation.value_counts(dropna = False)
     recommendations.plot.pie()
