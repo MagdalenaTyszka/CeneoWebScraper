@@ -1,12 +1,12 @@
-from crypt import methods
 from app import app
 import os
 import json
 import requests
+import markdown as md
 import pandas as pd
 from matplotlib import pyplot as plt
 from bs4 import BeautifulSoup
-from flask import render_template, redirect, url_for,request
+from flask import render_template, redirect, url_for, request
 
 def extract_element(ancestor, selector, attribute=None, return_list=False):
     try:
@@ -33,16 +33,20 @@ review_elements = {
 }
 
 @app.route('/')
-@app.route('/index')
 def index():
-    return render_template("index.html.jinja")
-@app.route('/author')    
-def author():
-    return render_template("author.html.jinja") 
+   # with open('README.md') as md_file:
+    #   md_to_html = md.markdown(md_file.read(), extensions=['tables','markdown.extensions.fenced_code'])
 
-@app.route('/extract', methods = ["POST", "GET"])
+    return render_template("index.html.jinja")
+
+@app.route('/author')
+def author():
+    return render_template("author.html.jinja")
+
+@app.route('/extract', methods=["POST", "GET"])
 def extract():
-    if request == ["POST"]
+    if request.method == "POST":
+        product_id = request.form.get("product_id")
         url = f"https://www.ceneo.pl/{product_id}#tab=reviews"
         all_reviews = []
         while(url):
@@ -64,16 +68,21 @@ def extract():
             try: 
                 next_page = page_dom.select_one("a.pagination__next")
                 url = "https://www.ceneo.pl"+next_page["href"]
-            except TypeError: url = None    
-
+            except TypeError: url = None
+        if not os.path.exists("app/reviews"):
+            os.makedirs("app/reviews")
         with open(f"./app/reviews/{product_id}.json", "w", encoding="UTF-8") as f:
             json.dump(all_reviews, f, indent=4, ensure_ascii=False)
-        return redirect(url_for('product', product))
+        return redirect(url_for('product', product_id=product_id))
     else:
+        return render_template("extract.html.jinja")
 
 @app.route('/products')
 def products():
-    products = [item.split(".").pop(0) for item in os.listdir("app/reviews")]
+    if os.path.exists("app/reviews"):
+        products = [item.split(".").pop(0) for item in os.listdir("app/reviews")]
+    else:
+        products = []
     return render_template("products.html.jinja", products=products)
 
 @app.route('/product/<product_id>')
@@ -83,10 +92,12 @@ def product(product_id):
         "product_rating": reviews.stars.mean().round(2),
         "reviews_count": reviews.shape[0],
         "pros_count": reviews.pros.map(bool).sum(),
-        "cons_count": reviews.cons.map(bool).sum()    
+        "cons_count": reviews.cons.map(bool).sum()
     }
+    if not os.path.exists("app/static/plots"):
+        os.makedirs("app/static/plots")
     recommendations = reviews.recommendation.value_counts(dropna = False)
     recommendations.plot.pie()
     plt.savefig(f"app/static/plots/{product_id}_recommendation.png")
     plt.close()
-    return render_template("product.html.jinja", stats=stats, product_id=product_id)
+    return render_template("product.html.jinja", stats=stats, product_id=product_id, tables=[reviews.to_html(classes='table table-sm table-hover table-bordered', header="true", table_id="reviews")])
