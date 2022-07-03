@@ -1,8 +1,9 @@
+from asyncore import read
 from app import app
 import os
 import json
 import requests
-import markdown as md
+import markdown
 import pandas as pd
 from matplotlib import pyplot as plt
 from bs4 import BeautifulSoup
@@ -34,10 +35,10 @@ review_elements = {
 
 @app.route('/')
 def index():
-   # with open('README.md') as md_file:
-    #   md_to_html = md.markdown(md_file.read(), extensions=['tables','markdown.extensions.fenced_code'])
+    with open('README.md', 'r') as f:
+        README_html = markdown.markdown(f.read(), extensions=['tables','nl2br','def_list'])
 
-    return render_template("index.html.jinja")
+    return render_template("index.html.jinja", README_html=README_html )
 
 @app.route('/author')
 def author():
